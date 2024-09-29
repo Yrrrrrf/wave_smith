@@ -1,4 +1,8 @@
+#![allow(unused)]
+#![allow(dead_code)]
+
 use std::collections::HashMap;
+use dev_utils::{debug, error, info, trace, warn};
 use lazy_static::lazy_static;
 
 // Macro to create Morse code mapping
@@ -87,6 +91,8 @@ impl MorseConverter {
     // ^ Convert Morse code to audio samples
     // ^ This is a new function that we will implement in the next section
     pub fn morse_to_samples(morse: &str, sample_rate: f32) -> Vec<f32> {
+        debug!("Morse: {}", morse);
+
         const DOT_DURATION: f32 = 0.1;
         const DASH_DURATION: f32 = DOT_DURATION * 3.0;
         const ELEMENT_GAP: f32 = DOT_DURATION;
@@ -125,6 +131,15 @@ impl MorseConverter {
             is_first_element = false;
         }
 
+        // println!("Samples: {:#?}", samples);
+
+        // create a file with the samples
+        let sample_as_text: &str = &samples.iter().map(|s| s.to_string()).collect::<Vec<String>>().join("\n");
+        match dev_utils::files::crud::create_file("./", "morse_samples.txt", sample_as_text) {
+            Ok(_) => info!("File created successfully"),
+            Err(e) => error!("Error creating file: {}", e),
+        }
+
         samples
     }
     
@@ -141,6 +156,9 @@ impl MorseConverter {
     fn generate_silence(duration: f32, sample_rate: f32) -> Vec<f32> {
         vec![0.0; (duration * sample_rate) as usize]
     }
+
+
+
 
     pub fn samples_to_morse(samples: &[f32], sample_rate: f32) -> String {
         const DOT_DURATION: f32 = 0.1;

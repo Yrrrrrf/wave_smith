@@ -31,7 +31,7 @@ fn main() {
     print_app_data(file!());
     set_max_level(Level::Warn);  // Set the max level of logging
 
-    static_test("aaaaaaaa");
+    static_test("CACAHUATE");
     // static_test("Hello, world!");
     // io_test();
 }
@@ -91,8 +91,8 @@ fn create_output_stream(
     
     // Convert message to morse code
     let morse_code = MorseConverter::text_to_morse(message);
-    println!("Source: {}\n", &message);
-    println!("Morse:  {}\n", &morse_code);
+    // println!("Source: {}\n", &message);
+    // println!("Morse:  {}\n", &morse_code);
     let morse_samples = MorseConverter::morse_to_samples(&morse_code, sample_rate);
 
     // println!("Morse samples: {:#?}", morse_samples);
@@ -149,7 +149,9 @@ fn test_audio_connection(message: &str) -> Result<bool, AudioError> {
     let received_samples = Arc::new(Mutex::new(Vec::new()));
     let received_samples_clone = Arc::clone(&received_samples);
 
+    // * Hear the message
     let input_stream = create_input_stream(&input_device, &config, received_samples_clone)?;
+    // * Send the message
     let output_stream = create_output_stream(&output_device, &config, message)?;
 
     input_stream.play().map_err(AudioError::PlayStreamError)?;
