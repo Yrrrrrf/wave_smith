@@ -6,11 +6,11 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 use cpal::SupportedStreamConfig;
 use std::time::Duration;
+
 use dev_utils::{
     print_app_data, error, warn, info, debug, trace,
     dlog::*,
 };
-
 
 use rust_wave::{
     some_fn,
@@ -29,18 +29,14 @@ enum AudioError {
 
 fn main() {
     print_app_data(file!());
-    set_max_level(Level::Warn);  // Set the max level of logging
+    // set_max_level(Level::Trace);  // Only print the trace macros
+    set_max_level(Level::Warn);  // trace, debug, info, warn
+    // the Level::Error will print ALL the logs
 
-    static_test("CACAHUATE");
-    // static_test("Hello, world!");
     // io_test();
-}
-
-fn static_test(message: &str) {
-    match test_audio_connection(message).unwrap() {
-        true => println!("\x1b[32mAudio connection test passed successfully.\x1b[0m"),
-        false => println!("\x1b[31mAudio connection test failed.\x1b[0m"),
-    }
+    // test_audio_connection("CACAHUATE");
+    // test_audio_connection("ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789");
+    test_audio_connection("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 }
 
 fn io_test() {
@@ -49,7 +45,7 @@ fn io_test() {
     println!("Press Enter to start the test...");
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
-
+    input.pop();  // rm newline char (Enter key)
     test_audio_connection(&input).unwrap();
 }
 
@@ -60,8 +56,8 @@ fn setup_devices() -> Result<(cpal::Device, cpal::Device, cpal::SupportedStreamC
     let input_device = host.default_input_device().ok_or(AudioError::DeviceNotFound)?;
     let supported_config = input_device.default_input_config().map_err(|_| AudioError::DeviceNotFound)?;
 
-    info!("Output device: {:?}", output_device.name());
-    info!("Input device: {:?}\n{:#?}", input_device.name(), supported_config);
+    trace!("Output device: {:?}", output_device.name());
+    trace!("Input device: {:?}\n{:#?}", input_device.name(), supported_config);
 
     Ok((output_device, input_device, supported_config))
 }
@@ -91,11 +87,7 @@ fn create_output_stream(
     
     // Convert message to morse code
     let morse_code = MorseConverter::text_to_morse(message);
-    // println!("Source: {}\n", &message);
-    // println!("Morse:  {}\n", &morse_code);
     let morse_samples = MorseConverter::morse_to_samples(&morse_code, sample_rate);
-
-    // println!("Morse samples: {:#?}", morse_samples);
 
     let mut sample_clock = Arc::new(Mutex::new(0));
     let sample_clock_clone = Arc::clone(&sample_clock);
@@ -105,15 +97,14 @@ fn create_output_stream(
         move |data: &mut [f32], _: &_| {
             let mut clock = sample_clock_clone.lock().unwrap();
             for frame in data.chunks_mut(channels) {
-                let sample = if *clock < morse_samples.len() {
-                    morse_samples[*clock]
-                } else {
-                    0.0
+                // Determine the sample value based on the current clock position
+                let sample = match clock.cmp(&morse_samples.len()) {
+                    std::cmp::Ordering::Less => morse_samples[*clock],  // continue playing the morse code
+                    _ => 0.0,  // if the clock is out of bounds, output silence
                 };
-                for sample_slice in frame.iter_mut() {
-                    *sample_slice = sample;
-                }
-                *clock += 1;
+                // Apply the sample value to all channels in the current frame
+                frame.iter_mut().for_each(|sample_slice| *sample_slice = sample);
+                *clock += 1;  // Increment the clock
             }
         },
         |err| eprintln!("Error in output stream: {}", err),
@@ -121,25 +112,30 @@ fn create_output_stream(
     ).map_err(AudioError::StreamError)
 }
 
+// todo: Valiadte that the audio was received correctly
+// todo: For now it just checks if there is any audio signal
+// todo: CREATE THE FRAME TO HANDLE THE AUDIO SIGNAL
+// todo: Improve this to handle the EXACT duration of the message
 fn analyze_received_audio(received: &[f32]) -> bool {
-    if received.is_empty() {
-        println!("No audio data received. Check your audio connection.");
-        false
-    } else {
-        println!("Audio data received successfully!");
-        println!("Received {} samples", received.len());        
-        match received.iter().position(|&sample| sample.abs() > 0.01) {
-            Some(pos) => {
-                println!("Signal detected at sample {}", pos);
-                true
-            },
-            None => {
-                println!("No significant audio signal detected. Test failed.");
-                false
-            }
+    match received {
+        [] => {
+            warn!("No audio data received. Check your audio connection.");
+            false
+        },
+        samples => {
+            info!("Audio data received successfully! {} samples captured.", samples.len());
+
+            samples.iter().enumerate().find(|&(_, &sample)| sample.abs() > 0.01).map_or_else(
+                || {warn!("No significant audio signal detected. Test failed."); false},
+                |(pos, _)| {info!("Signal detected at sample {pos}");
+                    // todo: HANDLE A WAY TO USE THIS TO CHECK THE BEGINNING OF THE SIGNAL FRAME
+                    trace!("First 10 samples: {:?}", &samples[..10.min(samples.len())]);
+                    true
+            })
         }
     }
 }
+
 
 fn test_audio_connection(message: &str) -> Result<bool, AudioError> {
     let (output_device, input_device, supported_config) = setup_devices()?;
@@ -149,22 +145,28 @@ fn test_audio_connection(message: &str) -> Result<bool, AudioError> {
     let received_samples = Arc::new(Mutex::new(Vec::new()));
     let received_samples_clone = Arc::clone(&received_samples);
 
-    // * Hear the message
+    // * INPUT STREAM (receive the message)
     let input_stream = create_input_stream(&input_device, &config, received_samples_clone)?;
-    // * Send the message
+    // * OUTPUT STEAM (send the message)
     let output_stream = create_output_stream(&output_device, &config, message)?;
 
+    // ^ Start the input stream first to avoid losing the first samples
     input_stream.play().map_err(AudioError::PlayStreamError)?;
-    std::thread::sleep(Duration::from_millis(100)); // Give some time for the input stream to start
+    // ^ Wait a bit before starting the output stream
+    std::thread::sleep(Duration::from_millis(100));
+    // ^ Start the output stream (send the message)
     output_stream.play().map_err(AudioError::PlayStreamError)?;
+    // todo: Create the audio signal FRAME (trama) to be sent
+    // todo: Improve this to handle the EXACT duration of the message
+    std::thread::sleep(Duration::from_secs_f32(message.len() as f32 * 0.1 * 2.0));
 
-    // Wait for the message to be fully played
-    let duration = Duration::from_secs_f32(message.len() as f32 * 0.1 * 2.0); // Rough estimate
-    std::thread::sleep(duration);
-
+    // * Pause the streams
     output_stream.pause().map_err(AudioError::PauseStreamError)?;
     input_stream.pause().map_err(AudioError::PauseStreamError)?;
 
-    let received = received_samples.lock().unwrap().clone();
-    Ok(analyze_received_audio(&received))
+    // * Analyze the received audio
+    Ok(analyze_received_audio(received_samples.clone().lock().unwrap().as_slice()))
+    // * same as above but with a clone (to avoid locking the mutex)
+    // let received = received_samples.lock().unwrap().clone();
+    // Ok(analyze_received_audio(&received))
 }

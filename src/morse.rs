@@ -71,7 +71,37 @@ pub struct MorseConverter;
 
 impl MorseConverter {
     // * Convert text to Morse code (modulate text)
+    /// Converts text to Morse code and returns both the original text and Morse code aligned
+    pub fn str_morse_eq(text: &str) -> (String, String) {
+        let morse = text.to_uppercase()
+            .chars()
+            .map(|c| {
+                MORSE_CODE.get(&c)
+                    .map(|&code| (c.to_string(), code.to_string()))
+                    .unwrap_or((c.to_string(), " ".to_string()))
+            })
+            .collect::<Vec<(String, String)>>();
+
+        let max_morse_len = morse.iter().map(|(_, code)| code.len()).max().unwrap_or(0);
+
+        let aligned_text: String = morse.iter()
+            .map(|(char, _)| format!("{:^width$}", char, width = max_morse_len + 1))
+            .collect();
+
+        let aligned_morse: String = morse.iter()
+            .map(|(_, code)| format!("{:width$}", code, width = max_morse_len + 1))
+            .collect();
+
+        (aligned_text, aligned_morse)
+    }
+
+    /// Converts text to Morse code
     pub fn text_to_morse(text: &str) -> String {
+        let (aligned_text, aligned_morse) = Self::str_morse_eq(text);
+        debug!("src-str: {}", aligned_text);
+        debug!("morse:   {}", aligned_morse);
+        
+        // Return the non-aligned Morse code for further processing
         text.to_uppercase()
             .chars()
             .filter_map(|c| MORSE_CODE.get(&c))
@@ -91,8 +121,6 @@ impl MorseConverter {
     // ^ Convert Morse code to audio samples
     // ^ This is a new function that we will implement in the next section
     pub fn morse_to_samples(morse: &str, sample_rate: f32) -> Vec<f32> {
-        debug!("Morse: {}", morse);
-
         const DOT_DURATION: f32 = 0.1;
         const DASH_DURATION: f32 = DOT_DURATION * 3.0;
         const ELEMENT_GAP: f32 = DOT_DURATION;
