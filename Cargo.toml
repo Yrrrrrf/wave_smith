@@ -1,0 +1,20 @@
+[package]
+name = "rust-wave"
+version = "0.0.1"
+edition = "2021"
+description = "Simple PROPIETARY AUDIO PROTOCOL implementation in Rust"
+authors = ["Reza Campos Fernando Bryan"]
+# documentation = "http://docs.rs/rust-wave"
+license = "MIT"
+
+[dependencies]
+dev_utils = { path = "../dev_utils/dev_utils/" }  # local crate (dev-utils)
+thiserror = "1.*"  # error handling
+
+cpal = "0.15.2"  # audio playback
+lazy_static = "1.*"  # lazy initialization
+rustfft = "6.1.0"  # FFT (Fast Fourier Transform)
+ndarray = "0.16.1"  # working with arrays
+
+[dev-dependencies]
+hound = "3.5.0"  # testing with WAV files
