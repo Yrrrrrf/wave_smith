@@ -8,11 +8,11 @@ use cpal::SupportedStreamConfig;
 use std::time::Duration;
 
 use dev_utils::{
-    print_app_data, error, warn, info, debug, trace,
+    app_dt, error, warn, info, debug, trace,
     dlog::*,
 };
 
-use rust_wave::{
+use wave_smith::{
     some_fn,
     another_fn,
     morse::MorseConverter,
@@ -28,15 +28,15 @@ enum AudioError {
 }
 
 fn main() {
-    print_app_data(file!());
-    // set_max_level(Level::Trace);  // Only print the trace macros
-    set_max_level(Level::Warn);  // trace, debug, info, warn
+    app_dt!(file!());
+    set_max_level(Level::Trace);  // Only print the trace macros
+    // set_max_level(Level::Warn);  // trace, debug, info, warn
     // the Level::Error will print ALL the logs
 
     // io_test();
-    // test_audio_connection("CACAHUATE");
+    test_audio_connection("CACAHUATE");
     // test_audio_connection("ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789");
-    test_audio_connection("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    // test_audio_connection("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 }
 
 fn io_test() {
@@ -45,7 +45,7 @@ fn io_test() {
     println!("Press Enter to start the test...");
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
-    input.pop();  // rm newline char (Enter key)
+    input.pop();  // ^ rm newline char (Enter key)
     test_audio_connection(&input).unwrap();
 }
 
@@ -124,7 +124,6 @@ fn analyze_received_audio(received: &[f32]) -> bool {
         },
         samples => {
             info!("Audio data received successfully! {} samples captured.", samples.len());
-
             samples.iter().enumerate().find(|&(_, &sample)| sample.abs() > 0.01).map_or_else(
                 || {warn!("No significant audio signal detected. Test failed."); false},
                 |(pos, _)| {info!("Signal detected at sample {pos}");

@@ -191,7 +191,7 @@ checksum = "0c87e182de0887fd5361989c677c4e8f5000cd9491d6d563161a8f3a5519fc7f"
 
 [[package]]
 name = "dev_utils"
-version = "0.0.13"
+version = "0.1.1-rc-2"
 
 [[package]]
 name = "either"
@@ -576,19 +576,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a66a03ae7c801facd77a29370b4faec201768915ac14a721ba36f20bc9c209b"
 
 [[package]]
-name = "rust-wave"
-version = "0.0.1"
-dependencies = [
- "cpal",
- "dev_utils",
- "hound",
- "lazy_static",
- "ndarray",
- "rustfft",
- "thiserror",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -776,6 +763,19 @@ name = "wasm-bindgen-shared"
 version = "0.2.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
+
+[[package]]
+name = "wave_smith"
+version = "0.0.1"
+dependencies = [
+ "cpal",
+ "dev_utils",
+ "hound",
+ "lazy_static",
+ "ndarray",
+ "rustfft",
+ "thiserror",
+]
 
 [[package]]
 name = "web-sys"

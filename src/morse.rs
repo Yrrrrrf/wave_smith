@@ -163,7 +163,7 @@ impl MorseConverter {
 
         // create a file with the samples
         let sample_as_text: &str = &samples.iter().map(|s| s.to_string()).collect::<Vec<String>>().join("\n");
-        match dev_utils::files::crud::create_file("./", "morse_samples.txt", sample_as_text) {
+        match dev_utils::file::create("./morse_samples.txt", sample_as_text) {
             Ok(_) => info!("File created successfully"),
             Err(e) => error!("Error creating file: {}", e),
         }

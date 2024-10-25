@@ -1,5 +1,5 @@
 [package]
-name = "rust-wave"
+name = "wave_smith"
 version = "0.0.1"
 edition = "2021"
 description = "Simple PROPIETARY AUDIO PROTOCOL implementation in Rust"
