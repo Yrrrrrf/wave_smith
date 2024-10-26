@@ -3,4 +3,3 @@
 
 # exclude resources except log.md
 /resources/*
-!/resources/log.md

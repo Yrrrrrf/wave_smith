@@ -7,11 +7,7 @@ pub mod audio;
 pub mod proto;
 pub mod encoding;
 pub mod error;
-
-pub trait AudioTransport {
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
-    fn receive(&mut self) -> Result<Vec<u8>, Box<dyn Error>>;
-}
+pub mod config;
 
 
 #[cfg(test)]

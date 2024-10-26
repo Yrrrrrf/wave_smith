@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Display;
 use crate::audio::{AudioDevice};
 use crate::audio::wave::{WaveGenerator, PulseDetector};
 
@@ -11,19 +12,55 @@ pub enum Signal {
     CharGap,   // Gap between characters (3 units)
     WordGap,   // Gap between words (7 units)
 }
+impl Signal {
+    fn from_char(c: char) -> Option<Self> {
+        Some(match c {  // ^ Some is used to avoid Option<Signal>
+            '.' => Signal::Dit,
+            '-' => Signal::Dah,
+            ' ' => Signal::CharGap,
+            _ => return None,  // * ignore invalid characters
+        })
+    }
+}
+
+impl Into<Signal> for char {
+    fn into(self) -> Signal {
+        match self {
+            '.' => Signal::Dit,
+            '-' => Signal::Dah,
+            ' ' => Signal::CharGap,
+            _ => Signal::CharGap,
+        }
+    }
+}
+impl Into<char> for Signal {
+    fn into(self) -> char {
+        match self {
+            Signal::Dit => '.',
+            Signal::Dah => '-',
+            Signal::CharGap => ' ',
+            Signal::WordGap => ' ',
+        }
+    }
+}
+impl Into<String> for Signal {
+    fn into(self) -> String {
+        match self {
+            Signal::Dit => ".".to_string(),
+            Signal::Dah => "-".to_string(),
+            Signal::CharGap => " ".to_string(),
+            Signal::WordGap => " ".to_string(),
+        }
+    }
+}
+impl Display for Signal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", Into::<char>::into(*self))
+    }
+}
 
 macro_rules! morse_patterns {
     ($($char:expr => $pattern:expr),* $(,)?) => {
-        impl Signal {
-            fn from_char(c: char) -> Option<Self> {
-                Some(match c {  // ^ Some is used to avoid Option<Signal>
-                    '.' => Signal::Dit,
-                    '-' => Signal::Dah,
-                    ' ' => Signal::CharGap,
-                    _ => return None,  // * ignore invalid characters
-                })
-            }
-        }
 
         impl Morse {
             fn char_to_signal(c: char) -> Vec<Signal> {
@@ -219,58 +256,3 @@ mod tests {
         }
     }
 }
-
-
-// Encoder trait implementation
-impl Encoder for Morse {
-    fn encode(&self, data: &[u8]) -> Result<Vec<f32>, Box<dyn Error>> {
-        let text = String::from_utf8_lossy(data);
-        let signals = Self::text_to_signals(&text);
-        let wave_gen = WaveGenerator::default();
-        
-        let mut audio_samples = Vec::new();
-        
-        for signal in signals {
-            let samples = match signal {
-                Signal::Dit => wave_gen.generate_tone(0.1),
-                Signal::Dah => wave_gen.generate_tone(0.3),
-                Signal::CharGap => wave_gen.generate_silence(0.3),
-                Signal::WordGap => wave_gen.generate_silence(0.7),
-            };
-            audio_samples.extend(samples);
-        }
-
-        Ok(audio_samples)
-    }
-
-    fn decode(&self, samples: &[f32]) -> Result<Vec<u8>, Box<dyn Error>> {
-        let detector = PulseDetector::default();
-        let pulses = detector.detect_pulses(samples);
-        
-        // * SAME AS ABOVE USING MATCH
-        let signals: Vec<Signal> = pulses.into_iter()
-            .map(|pulse| match pulse {
-                pulse if pulse < detector.min_pulse_samples => Signal::CharGap,
-                pulse if pulse <= detector.max_pulse_samples => Signal::Dit,
-                _ => Signal::Dah,
-            })
-            .collect();
-
-        Ok(Self::signals_to_text(&signals).into_bytes())
-    }
-}
-
-// // Example usage remains clean and simple
-// fn main() -> Result<(), Box<dyn Error>> {
-//     let morse = Morse;
-//     let audio_device = AudioDevice::new(Box::new(morse))?;
-
-//     // Send message
-//     audio_device.send(b"SOS")?;
-    
-//     // Receive message
-//     let received = audio_device.receive()?;
-//     println!("Received: {}", String::from_utf8_lossy(&received));
-
-//     Ok(())
-// }

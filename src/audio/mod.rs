@@ -1,111 +1,77 @@
-// * external imports
+// * mod.rs
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-
-// * std imports
 use std::error::Error;
 use std::time::Duration;
 
-// * module related
-mod capture;
-mod playback;
+pub mod capture;
+pub mod playback;
+mod buffer;
 pub mod wave;
 
 use capture::AudioCapture;
 use playback::AudioPlayback;
+
 use crate::encoding::Encoder;
-use crate::AudioTransport;
-
-
-#[derive(Debug, Clone)]
-pub struct AudioConfig {
-    pub sample_rate: u32,
-    pub channels: u16,
-    pub buffer_size: usize,
-}
-
-impl Default for AudioConfig {
-    fn default() -> Self {
-        Self {
-            sample_rate: 48000,
-            channels: 1,
-            buffer_size: 1024,
-        }
-    }
-}
+use crate::config::{AudioConfig, AudioConstant};
+use wave::{PulseDetector, WaveGenerator};
 
 pub struct AudioDevice {
     config: AudioConfig,
     encoder: Box<dyn Encoder>,
     capture: AudioCapture,
     playback: AudioPlayback,
+    wave_gen: WaveGenerator,
+    pulse_detector: PulseDetector,
 }
 
 impl AudioDevice {
     pub fn new(encoder: Box<dyn Encoder>) -> Result<Self, Box<dyn Error>> {
+        let config = AudioConfig::default();
+
         Ok(Self {
-            config: AudioConfig::default(),
             encoder,
             capture: AudioCapture::new()?,
             playback: AudioPlayback::new()?,
+            wave_gen: WaveGenerator::new(config.clone()),
+            pulse_detector: PulseDetector::new(config.clone()),
+            config,
         })
     }
 
-    // Method to send a simple sync signal
-    pub fn send_sync_signal(&mut self) -> Result<(), Box<dyn Error>> {
-        // Generate a simple sync signal (440Hz tone for 100ms)
-        let sample_rate = self.config.sample_rate;
-        let duration = 0.1; // 100ms
-        let frequency = 440.0; // A4 note
-        
-        let samples: Vec<f32> = (0..(sample_rate as f32 * duration) as usize)
-            .map(|i| {
-                let t = i as f32 / sample_rate as f32;
-                (t * frequency * 2.0 * std::f32::consts::PI).sin() * 0.5
-            })
-            .collect();
+    pub fn with_config(encoder: Box<dyn Encoder>, config: AudioConfig) -> Result<Self, Box<dyn Error>> {
+        Ok(Self {
+            encoder,
+            capture: AudioCapture::new()?,
+            playback: AudioPlayback::new()?,
+            wave_gen: WaveGenerator::new(config.clone()),
+            pulse_detector: PulseDetector::new(config.clone()),
+            config,
+        })
+    }
 
-        let stream = self.playback.play_samples(samples)?;
+    pub fn send_sync_signal(&mut self) -> Result<(), Box<dyn Error>> {
+        let sync_samples = self.wave_gen.generate_sync_tone();
+        let stream = self.playback.play_samples(sync_samples)?;
         
         // Wait for the sync signal to finish
-        std::thread::sleep(Duration::from_secs_f32(duration * 1.5));
+        std::thread::sleep(Duration::from_secs_f32(
+            self.config.sync_duration() * 1.5
+        ));
         
         Ok(())
     }
 
-    // Method to listen for sync signal
     pub fn listen_for_sync(&mut self) -> Result<bool, Box<dyn Error>> {
         let stream = self.capture.start_listening()?;
         
-        // Listen for 200ms (longer than sync signal to ensure capture)
-        std::thread::sleep(Duration::from_millis(200));
+        // Listen for twice the sync duration to ensure capture
+        std::thread::sleep(Duration::from_secs_f32(
+            self.config.sync_duration() * 2.0
+        ));
         
-        // Get the captured samples
         let samples = self.capture.get_samples();
+        let pulses = self.pulse_detector.detect_pulses(&samples);
         
-        // Simple detection: check if any sample is above threshold
-        let threshold = 0.1;
-        let signal_detected = samples.iter().any(|&s| s.abs() > threshold);
-        
-        Ok(signal_detected)
-    }
-}
-
-impl AudioTransport for AudioDevice {
-    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        // First, send sync signal
-        self.send_sync_signal()?;
-        
-        // TODO: Implement actual data sending
-        Ok(())
-    }
-
-    fn receive(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-        // First, wait for sync signal
-        if !self.listen_for_sync()? {
-            return Err("No sync signal detected".into());
-        }
-        
-        // TODO: Implement actual data receiving
-        Ok(Vec::new())
+        Ok(!pulses.is_empty())
     }
 }
