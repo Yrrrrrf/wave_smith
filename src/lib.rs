@@ -1,10 +1,17 @@
-pub fn some_fn() {println!("Some function");}
+// * Some of the most useful dis-allows (to silence most of the clippy warnings)
+#![allow(unused)]
 
-pub fn another_fn() {println!("Another function");}
+use std::error::Error;
 
+pub mod audio;
+pub mod proto;
+pub mod encoding;
+pub mod error;
 
-
-pub mod morse;
+pub trait AudioTransport {
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
+    fn receive(&mut self) -> Result<Vec<u8>, Box<dyn Error>>;
+}
 
 
 #[cfg(test)]

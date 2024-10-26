@@ -1,20 +1,27 @@
 [package]
-name = "wave_smith"
+name = "wave"
 version = "0.0.1"
 edition = "2021"
 description = "Simple PROPIETARY AUDIO PROTOCOL implementation in Rust"
 authors = ["Reza Campos Fernando Bryan"]
-# documentation = "http://docs.rs/rust-wave"
+# documentation = "http://docs.rs/rust-wave"  # not yet published (or implemented :P)
 license = "MIT"
+exclude = [
+    "resources/*",  # some svg, logs and other resources 
+    "scripts/*"  # some scripts (bash, python) used for testing
+]
+
 
 [dependencies]
+# DEV DEPS
 dev_utils = { path = "../dev_utils/dev_utils/" }  # local crate (dev-utils)
-thiserror = "1.*"  # error handling
+thiserror = "1"  # error handling
+# DATA TRANSFER PROTOCOL dependencies
+cpal = "0.15"  # code for audio input/output
+rustfft = "6"  # FFT (Fast Fourier Transform)
+bytes = { version = "1.8", features = ["serde"] }  # Efficient byte handling
 
-cpal = "0.15.2"  # audio playback
-lazy_static = "1.*"  # lazy initialization
-rustfft = "6.1.0"  # FFT (Fast Fourier Transform)
-ndarray = "0.16.1"  # working with arrays
+lazy_static = "1.5.0"  # lazy initialization
 
 [dev-dependencies]
-hound = "3.5.0"  # testing with WAV files
+criterion = "0.5"  # benchmarking

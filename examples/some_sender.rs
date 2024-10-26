@@ -62,7 +62,7 @@ impl AudioSender {
     pub fn send_message(&self, message: &str) -> Result<cpal::Stream, AudioError> {
         let sample_rate = self.config.sample_rate.0 as f32;
         let channels = self.config.channels as usize;
-        
+
         // todo: psdffsdfdsfdffdf
         debug!("Message details:");
         debug!("├─ Length: {} characters", message.len().to_string().color(CYAN));
