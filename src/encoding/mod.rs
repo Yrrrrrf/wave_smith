@@ -3,30 +3,8 @@
 use std::error::Error;
 
 // * module imports
-pub mod morse;
-use morse::*;
-
-
-// Common configuration for all encoders
-#[derive(Debug, Clone)]
-pub struct EncoderConfig {
-    pub sample_rate: u32,
-    pub threshold: f32,
-    pub min_pulse_samples: usize,
-    pub max_pulse_samples: usize,
-}
-
-impl Default for EncoderConfig {
-    fn default() -> Self {
-        Self {
-            sample_rate: 48000,
-            threshold: 0.1,
-            min_pulse_samples: (0.08 * 48000.0) as usize,  // 80ms
-            max_pulse_samples: (0.12 * 48000.0) as usize,  // 120ms
-        }
-    }
-}
-
+pub mod fsk;
+pub use fsk::FSKEncoder;
 
 pub trait Encoder {
     // Core encoding/decoding methods    // * Encode: bits -> signal
@@ -40,4 +18,13 @@ pub trait Encoder {
     // & src -> [Encoder] -> dst (transmission) -> [Decoder] -> src
     // ^ 'dst' is information that is transmitted over a communication channel
     // ^ 'src' is the data that is to be transmitted
+}
+
+
+pub fn byte_to_bits(byte: u8) -> Vec<bool> {
+    (0..8).map(|i| ((byte >> (7 - i)) & 1) == 1).collect()
+}
+
+pub fn bits_to_byte(bits: &[bool]) -> u8 {
+    bits.iter().fold(0u8, |acc, &bit| (acc << 1) | if bit { 1 } else { 0 })
 }

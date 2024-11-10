@@ -1,67 +1,53 @@
-use std::error::Error;
+// * Morse code encoding and decoding
 use std::fmt::Display;
-use crate::audio::{AudioDevice};
-use crate::audio::wave::{WaveGenerator, PulseDetector};
 
-use super::Encoder;
+// First, let's create a macro for the Signal enum and its basic implementations
+macro_rules! define_signal {
+    ($($variant:ident => $char:expr),* $(,)?) => {
+        #[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
+        pub enum Signal {$($variant),*}
 
-#[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
-pub enum Signal {
-    Dit,
-    Dah,
-    CharGap,   // Gap between characters (3 units)
-    WordGap,   // Gap between words (7 units)
-}
-impl Signal {
-    fn from_char(c: char) -> Option<Self> {
-        Some(match c {  // ^ Some is used to avoid Option<Signal>
-            '.' => Signal::Dit,
-            '-' => Signal::Dah,
-            ' ' => Signal::CharGap,
-            _ => return None,  // * ignore invalid characters
-        })
-    }
-}
-
-impl Into<Signal> for char {
-    fn into(self) -> Signal {
-        match self {
-            '.' => Signal::Dit,
-            '-' => Signal::Dah,
-            ' ' => Signal::CharGap,
-            _ => Signal::CharGap,
+        impl Signal {
+            // todo: Remove this fn
+            // todo: It's  redundant to the From<char> impl
+            fn from_char(c: char) -> Option<Self> {
+                match c {
+                    $($char => Some(Signal::$variant),)*
+                    _ => None,
+                }
+            }
         }
-    }
-}
-impl Into<char> for Signal {
-    fn into(self) -> char {
-        match self {
-            Signal::Dit => '.',
-            Signal::Dah => '-',
-            Signal::CharGap => ' ',
-            Signal::WordGap => ' ',
+
+        impl From<char> for Signal {
+            fn from(c: char) -> Self {
+                match c {
+                    $($char => Signal::$variant,)*
+                    _ => Signal::CharGap, // Default case
+                }
+            }
         }
-    }
-}
-impl Into<String> for Signal {
-    fn into(self) -> String {
-        match self {
-            Signal::Dit => ".".to_string(),
-            Signal::Dah => "-".to_string(),
-            Signal::CharGap => " ".to_string(),
-            Signal::WordGap => " ".to_string(),
+
+        impl From<Signal> for char {
+            fn from(signal: Signal) -> Self {
+                match signal {$(Signal::$variant => $char,)*}
+            }
         }
-    }
-}
-impl Display for Signal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", Into::<char>::into(*self))
-    }
+
+        impl From<Signal> for String {
+            fn from(signal: Signal) -> Self {char::from(signal).to_string()}
+        }
+
+        impl Display for Signal {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "{}", char::from(*self))
+            }
+        }
+    };
 }
 
-macro_rules! morse_patterns {
+// A macro for defining morse patterns with automatic signal conversion
+macro_rules! define_morse_patterns {
     ($($char:expr => $pattern:expr),* $(,)?) => {
-
         impl Morse {
             fn char_to_signal(c: char) -> Vec<Signal> {
                 match c {
@@ -71,22 +57,30 @@ macro_rules! morse_patterns {
             }
 
             fn signals_to_char(signals: &[Signal]) -> Option<char> {
-                let pattern: String = signals.iter()
-                    .map(|s| match s {
-                        Signal::Dit => '.',  // Short signal
-                        Signal::Dah => '-',  // Long signal
-                        Signal::CharGap => ' ',  // Gap
-                        Signal::WordGap => ' ',  // Gap
-                    }).collect();
-                match pattern.as_str() { $($pattern => Some($char),)* _ => None }
+                let pattern: String = signals.iter().map(|&s| char::from(s)).collect();
+                match pattern.as_str() {
+                    $($pattern => Some($char),)*
+                    _ => None
+                }
             }
         }
     };
 }
 
+
+// Usage example:
+define_signal! {
+    Dit => '.',
+    Dah => '-',
+    CharGap => ' ',
+    WordGap => ' ',
+}
+
 pub struct Morse;
 
-morse_patterns! {
+define_morse_patterns! {
+    // &Special characters
+    ' ' => " ",  // char gap 
     // &Letters
     'A' => ".-", 'B' => "-...", 'C' => "-.-.", 'D' => "-..",
     'E' => ".", 'F' => "..-.", 'G' => "--.", 'H' => "....",
@@ -96,13 +90,19 @@ morse_patterns! {
     // &Numbers
     '0' => "-----", '1' => ".----", '2' => "..---", '3' => "...--", '4' => "....-", 
     '5' => ".....", '6' => "-....", '7' => "--...", '8' => "---..", '9' => "----.",
-    // &Special characters
-    ' ' => " ",  // char gap 
 }
+// aceituna
+
+// ^ (A) (C) (E) (I) (T) (U) (N) (A)
+// ^ (.-) (.-.) (.-..) (.-..) (.-..) (.-..) (.-..) (.-..)
+// ^ (00101110 00101101) (00101110 00101101 00101110)
+// * on asqii: (char) -> Shift+(num)
+// '.' -> 46 -> 0b00101110
+// '-' on asqii -> 45 -> 0b00101101
 
 impl Morse {
     /// Convert morse signals to text
-    pub fn signals_to_text(signals: &[Signal]) -> String {
+    pub fn decode(signals: &[Signal]) -> String {
         let mut result = String::new();
         let mut current_char = Vec::new();
         let mut gap_count = 0;
@@ -130,7 +130,7 @@ impl Morse {
     }
 
     /// Convert text to morse signals
-    pub fn text_to_signals(text: &str) -> Vec<Signal> {
+    pub fn encode(text: &str) -> Vec<Signal> {
         text.to_uppercase().chars().filter(|&c| c.is_alphanumeric() || c == ' ')
             .fold((Vec::new(), true), |(mut acc, first), c| {
                 match c {
@@ -157,35 +157,35 @@ mod tests {
         let c = Signal::CharGap;
 
         let signals = vec![s, s, s, c, o, o, o, c, s, s, s];  // S O S
-        assert_eq!(Morse::signals_to_text(&signals), "SOS");
+        assert_eq!(Morse::decode(&signals), "SOS");
     }
 
     #[test]
     fn test_simple_words() {
         let input = "HELLO WORLD";
-        let signals = Morse::text_to_signals(input);
-        let output = Morse::signals_to_text(&signals);
+        let signals = Morse::encode(input);
+        let output = Morse::decode(&signals);
         assert_eq!(output, input);
     }
 
     #[test]
     fn test_special_characters() {
         assert_eq!(
-            Morse::signals_to_text(&Morse::text_to_signals("H@LLO!")),
+            Morse::decode(&Morse::encode("H@LLO!")),
             "HLLO"
         );
-        assert_eq!(Morse::signals_to_text(&Morse::text_to_signals("")), "");
-        assert_eq!(Morse::signals_to_text(&Morse::text_to_signals("@#$%")), "");
+        assert_eq!(Morse::decode(&Morse::encode("")), "");
+        assert_eq!(Morse::decode(&Morse::encode("@#$%")), "");
     }
 
     #[test]
     fn test_space_handling() {
         assert_eq!(
-            Morse::signals_to_text(&Morse::text_to_signals("A  B   C")),
+            Morse::decode(&Morse::encode("A  B   C")),
             "A B C"
         );
         assert_eq!(
-            Morse::signals_to_text(&Morse::text_to_signals("  SOS  ")),
+            Morse::decode(&Morse::encode("  SOS  ")),
             "SOS"
         );
     }
@@ -199,7 +199,7 @@ mod tests {
             Signal::CharGap,
             Signal::Dah,  // T
         ];
-        assert_eq!(Morse::signals_to_text(&signals), "IAT");
+        assert_eq!(Morse::decode(&signals), "IAT");
     }
 
     #[test]
@@ -208,20 +208,20 @@ mod tests {
         let lower = "hello";
         let mixed = "HeLLo";
         
-        let signals_upper = Morse::text_to_signals(upper);
-        let signals_lower = Morse::text_to_signals(lower);
-        let signals_mixed = Morse::text_to_signals(mixed);
+        let signals_upper = Morse::encode(upper);
+        let signals_lower = Morse::encode(lower);
+        let signals_mixed = Morse::encode(mixed);
         
-        assert_eq!(Morse::signals_to_text(&signals_upper), "HELLO");
-        assert_eq!(Morse::signals_to_text(&signals_lower), "HELLO");
-        assert_eq!(Morse::signals_to_text(&signals_mixed), "HELLO");
+        assert_eq!(Morse::decode(&signals_upper), "HELLO");
+        assert_eq!(Morse::decode(&signals_lower), "HELLO");
+        assert_eq!(Morse::decode(&signals_mixed), "HELLO");
     }
 
     #[test]
     fn test_alphanumeric() {
         let input = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        let signals = Morse::text_to_signals(input);
-        let output = Morse::signals_to_text(&signals);
+        let signals = Morse::encode(input);
+        let output = Morse::decode(&signals);
         assert_eq!(output, input);
     }
 
@@ -234,8 +234,8 @@ mod tests {
         ];
 
         for phrase in phrases {
-            let signals = Morse::text_to_signals(phrase);
-            let output = Morse::signals_to_text(&signals);
+            let signals = Morse::encode(phrase);
+            let output = Morse::decode(&signals);
             assert_eq!(output, phrase);
         }
     }
@@ -250,8 +250,8 @@ mod tests {
         ];
 
         for (text, _pattern) in patterns {
-            let signals = Morse::text_to_signals(text);
-            let output = Morse::signals_to_text(&signals);
+            let signals = Morse::encode(text);
+            let output = Morse::decode(&signals);
             assert_eq!(output, text);
         }
     }
