@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+    <!-- Background -->
+    <rect width="800" height="600" fill="#1E1E1E"/>
+    
+    <!-- Title -->
+    <text x="400" y="40" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" font-weight="bold">Data Transmission Hierarchy</text>
+
+    <!-- Message Container -->
+    <rect x="50" y="70" width="700" height="500" fill="#2D2D2D" rx="10"/>
+
+    <!-- Message Level -->
+    <g transform="translate(70,90)">
+        <text x="0" y="-5" font-family="Arial" font-size="16" fill="#4EC9B0" font-weight="bold">MESSAGE</text>
+        <rect x="0" y="10" width="660" height="60" fill="#264F78" rx="5"/>
+        <text x="330" y="35" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Complete Data Transmission</text>
+        <text x="330" y="55" font-family="Arial" font-size="12" fill="#569CD6" text-anchor="middle">Multiple Frames - Total Size: Variable</text>
+    </g>
+
+    <!-- Frame Level -->
+    <g transform="translate(90,180)">
+        <text x="0" y="-5" font-family="Arial" font-size="16" fill="#4EC9B0" font-weight="bold">FRAME</text>
+        
+        <!-- Header -->
+        <rect x="0" y="10" width="280" height="100" fill="#264F78" rx="5"/>
+        <text x="140" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Frame Header</text>
+        <text x="20" y="50" font-family="Arial" font-size="12" fill="#569CD6">• Preamble (4B): 0xAA AA AA AA</text>
+        <text x="20" y="70" font-family="Arial" font-size="12" fill="#569CD6">• Version, Length, Seq#, Flags (5B)</text>
+        <text x="20" y="90" font-family="Arial" font-size="12" fill="#569CD6">• Frame Control (1B)</text>
+
+        <!-- Packets -->
+        <rect x="290" y="10" width="280" height="100" fill="#3C3C3C" rx="5"/>
+        <text x="430" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Frame Payload (Packets)</text>
+        <text x="310" y="50" font-family="Arial" font-size="12" fill="#569CD6">• 1-N Packets per Frame</text>
+        <text x="310" y="70" font-family="Arial" font-size="12" fill="#569CD6">• Variable Length (≤1024B)</text>
+        <text x="310" y="90" font-family="Arial" font-size="12" fill="#569CD6">• Type-specific Structure</text>
+    </g>
+
+    <!-- Packet Level -->
+    <g transform="translate(110,310)">
+        <text x="0" y="-5" font-family="Arial" font-size="16" fill="#4EC9B0" font-weight="bold">PACKET</text>
+        
+        <!-- Packet Header -->
+        <rect x="0" y="10" width="200" height="80" fill="#264F78" rx="5"/>
+        <text x="100" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Packet Header</text>
+        <text x="20" y="50" font-family="Arial" font-size="12" fill="#569CD6">• Type (1B)</text>
+        <text x="20" y="70" font-family="Arial" font-size="12" fill="#569CD6">• Length, Flags (3B)</text>
+
+        <!-- Segments -->
+        <rect x="210" y="10" width="200" height="80" fill="#3C3C3C" rx="5"/>
+        <text x="310" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Packet Payload</text>
+        <text x="230" y="50" font-family="Arial" font-size="12" fill="#569CD6">• 1-N Segments</text>
+        <text x="230" y="70" font-family="Arial" font-size="12" fill="#569CD6">• Type-specific Data</text>
+
+        <!-- Packet Trailer -->
+        <rect x="420" y="10" width="200" height="80" fill="#264F78" rx="5"/>
+        <text x="520" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Packet Trailer</text>
+        <text x="440" y="50" font-family="Arial" font-size="12" fill="#569CD6">• Checksum (2B)</text>
+        <text x="440" y="70" font-family="Arial" font-size="12" fill="#569CD6">• End Mark (2B)</text>
+    </g>
+
+    <!-- Segment Level -->
+    <g transform="translate(130,420)">
+        <text x="0" y="-5" font-family="Arial" font-size="16" fill="#4EC9B0" font-weight="bold">SEGMENT</text>
+        
+        <!-- Segment Header -->
+        <rect x="0" y="10" width="180" height="80" fill="#264F78" rx="5"/>
+        <text x="90" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Segment Header</text>
+        <text x="20" y="50" font-family="Arial" font-size="12" fill="#569CD6">• ID, Type (2B)</text>
+        <text x="20" y="70" font-family="Arial" font-size="12" fill="#569CD6">• Length (2B)</text>
+
+        <!-- Data -->
+        <rect x="190" y="10" width="180" height="80" fill="#3C3C3C" rx="5"/>
+        <text x="280" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Data</text>
+        <text x="210" y="50" font-family="Arial" font-size="12" fill="#569CD6">• Raw Data</text>
+        <text x="210" y="70" font-family="Arial" font-size="12" fill="#569CD6">• ≤256B per Segment</text>
+
+        <!-- Segment Trailer -->
+        <rect x="380" y="10" width="180" height="80" fill="#264F78" rx="5"/>
+        <text x="470" y="30" font-family="Arial" font-size="14" fill="#FFFFFF" text-anchor="middle">Segment Trailer</text>
+        <text x="400" y="50" font-family="Arial" font-size="12" fill="#569CD6">• CRC (2B)</text>
+        <text x="400" y="70" font-family="Arial" font-size="12" fill="#569CD6">• ECC (2B)</text>
+    </g>
+
+    <!-- Legend -->
+    <g transform="translate(650,520)">
+        <text x="0" y="0" font-family="Arial" font-size="14" fill="#4EC9B0" font-weight="bold">Legend:</text>
+        <rect x="0" y="10" width="20" height="20" fill="#264F78"/>
+        <text x="30" y="25" font-family="Arial" font-size="12" fill="#FFFFFF">Control</text>
+        <rect x="0" y="40" width="20" height="20" fill="#3C3C3C"/>
+        <text x="30" y="55" font-family="Arial" font-size="12" fill="#FFFFFF">Data</text>
+    </g>
+
+    <!-- Connection Lines -->
+    <g stroke="#4EC9B0" stroke-width="2">
+        <path d="M400 160 L400 180"/> <!-- Message to Frame -->
+        <path d="M400 290 L400 310"/> <!-- Frame to Packet -->
+        <path d="M400 400 L400 420"/> <!-- Packet to Segment -->
+    </g>
+</svg>

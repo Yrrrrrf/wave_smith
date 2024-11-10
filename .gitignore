@@ -1,5 +1,4 @@
 /target
 /scripts
 
-# exclude resources except log.md
-/resources/*
+/resources/temp/*
