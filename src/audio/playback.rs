@@ -5,9 +5,9 @@ use crate::encoding::Encoder;
 
 
 pub struct AudioPlayback {
-    device: cpal::Device,      // The physical output device (speakers)
+    pub device: cpal::Device,      // The physical output device (speakers)
     config: cpal::StreamConfig, // Device configuration
-    encoder: Box<dyn Encoder>, // The encoder instance for signal processing
+    pub encoder: Box<dyn Encoder>, // The encoder instance for signal processing
 }
 
 impl AudioPlayback {

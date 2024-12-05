@@ -3,104 +3,114 @@
 use std::{thread, time::Duration};
 use wave::{encoding::{Encoder, FSKEncoder}, proto::Frame};
 use dev_utils::{app_dt, error, warn, info, debug, trace, dlog::*};
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use std::error::Error;
 
-
-fn main() {
-    app_dt!(file!());
-    set_max_level(Level::Trace);
+fn main() -> Result<(), Box<dyn Error>> {
+    let host = cpal::default_host();
     
-    info!("Starting Audio Protocol Tests");
-    
-    // Run basic FSK codec test from original
-    // test_fsk_codec();
-    // Run comprehensive device tests
-    // test_audio_device();
-    test_frame_operations();
-}
-
-
-fn test_frame_operations() {
-    info!("Testing Frame operations");
-
-    // Test frame creation
-    let test_data = b"Test Frame Data";
-    let frame = Frame::new(1, test_data.to_vec());
-    
-    debug!("Created frame with sequence {}", frame.sequence);
-    
-    // Test frame serialization
-    let frame_bytes = frame.to_bytes();
-    debug!("Frame serialized to {} bytes", frame_bytes.len());
-    
-    // Test frame deserialization
-    match Frame::from_bytes(&frame_bytes) {
-        Ok(decoded_frame) => {
-            assert_eq!(decoded_frame.sequence, 1, "Sequence number mismatch");
-            assert_eq!(&decoded_frame.payload, test_data, "Payload mismatch");
-            info!("Frame serialization/deserialization test passed");
-        }
-        Err(e) => {
-            error!("Frame deserialization failed: {:?}", e);
-        }
+    // List all available devices
+    println!("\nAvailable Input Devices:");
+    for device in host.input_devices()? {
+        println!("- {} [{:?}]", device.name()?, device.default_input_config()?);
     }
+    
+    println!("\nAvailable Output Devices:");
+    for device in host.output_devices()? {
+        println!("- {} [{:?}]", device.name()?, device.default_output_config()?);
+    }
+    
+    println!("\nSelect test mode:");
+    println!("1. Try input device for both send/receive");
+    println!("2. Try output device for both send/receive");
+    
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+    
+    match input.trim() {
+        "1" => test_input_device(&host)?,
+        "2" => test_output_device(&host)?,
+        _ => println!("Invalid selection")
+    }
+    
+    Ok(())
 }
 
-fn test_fsk_codec() {
-    info!("Testing FSK codec");
-
-    let fsk = FSKEncoder::new(48000, 1200.0, 2400.0, 480);
-
-    let data = b"Hello, World!";
-    
-    match fsk.encode(data) {
-        Ok(encoded) => {
-            debug!("Data encoded: {} samples", encoded.len());
-            match fsk.decode(&encoded) {
-                Ok(decoded) => {
-                    trace!("\tOriginal data: {:?}", data);
-                    trace!("\tDecoded data:  {:?}", decoded);
-                    // if decoded == data {
-                    //     info!("FSK codec test passed");
-                    // } else {
-                    //     error!("FSK codec test failed: data mismatch");
-                    // }
+// Attempt to use input device for both operations
+fn test_input_device(host: &cpal::Host) -> Result<(), Box<dyn Error>> {
+    println!("\nTesting input device...");
+    if let Some(device) = host.default_input_device() {
+        println!("Using device: {}", device.name()?);
+        
+        // Try to build both input and output streams on this device
+        let config = device.default_input_config()?.config();
+        
+        println!("Attempting to create input stream...");
+        if let Ok(stream) = device.build_input_stream(
+            &config,
+            move |data: &[f32], _: &_| {
+                println!("Received {} samples", data.len());
+            },
+            |err| eprintln!("Error: {}", err),
+            None
+        ) {
+            println!("Successfully created input stream!");
+            stream.play()?;
+        }
+        
+        println!("Attempting to create output stream on input device...");
+        match device.build_output_stream(
+            &config,
+            move |data: &mut [f32], _: &_| {
+                // Try to send a simple tone
+                for sample in data.iter_mut() {
+                    *sample = 0.5;
                 }
-                Err(e) => error!("Decoding error: {}", e),
-            }
+            },
+            |err| eprintln!("Error: {}", err),
+            None
+        ) {
+            Ok(_) => println!("Successfully created output stream on input device!"),
+            Err(e) => println!("Failed to create output stream: {}", e)
         }
-        Err(e) => error!("Encoding error: {}", e),
     }
+    Ok(())
 }
 
-fn test_encoder() {
-    use wave::encoding::{FSKEncoder, Encoder};
-    
-    info!("Main tester");
-
-    let fsk = FSKEncoder::new(
-        48000,    // 48kHz sample rate
-        1200.0,   // 1200 Hz for bit 0
-        2400.0,   // 2400 Hz for bit 1
-        480,      // 480 samples per bit (100 bps)
-    );
-
-    // Encoding
-    let data = b"Hello, World!";
-    // let encoded = fsk.encode(data)?;
-    let encoded = match fsk.encode(data) {
-        Ok(encoded) => encoded,
-        Err(e) => {error!("Error: {}", e); return;}
-    };
-    
-    // Decoding
-    // let decoded = fsk.decode(&encoded)?;
-    let decoded = match fsk.decode(&encoded) {
-        Ok(decoded) => decoded,
-        Err(e) => {error!("Error: {}", e); return;}
-    };
-
-    // Compare original and decoded data
-    println!("Original data: {:?}", data);
-    println!("Decoded data: {:?}", decoded);
-    assert_eq!(data.to_vec(), decoded, "Decoded data should match original data");
+// Attempt to use output device for both operations
+fn test_output_device(host: &cpal::Host) -> Result<(), Box<dyn Error>> {
+    println!("\nTesting output device...");
+    if let Some(device) = host.default_output_device() {
+        println!("Using device: {}", device.name()?);
+        
+        // Try to build both input and output streams on this device
+        let config = device.default_output_config()?.config();
+        
+        println!("Attempting to create output stream...");
+        if let Ok(stream) = device.build_output_stream(
+            &config,
+            move |data: &mut [f32], _: &_| {
+                // Try to send a simple tone
+                for sample in data.iter_mut() {
+                    *sample = 0.5;
+                }
+            },
+            |err| eprintln!("Error: {}", err),
+            None
+        ) {
+            println!("Successfully created output stream!");
+            stream.play()?;
+        }
+        
+        println!("Attempting to create input stream on output device...");
+        match device.build_input_stream(&config,
+            move |data: &[f32], _: &_| {println!("Received {} samples", data.len());},
+            |err| eprintln!("Error: {}", err),
+            None
+        ) {
+            Ok(_) => println!("Successfully created input stream on output device!"),
+            Err(e) => println!("Failed to create input stream: {}", e)
+        }
+    }
+    Ok(())
 }

@@ -1,5 +1,5 @@
 // * Some of the most useful dis-allows (to silence most of the clippy warnings)
-// #![allow(unused)]
+#![allow(unused)]
 
 pub mod audio;
 pub mod proto;

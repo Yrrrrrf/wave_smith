@@ -13,6 +13,17 @@ pub mod router;
 
 pub fn list_audio_devices() -> Result<(Vec<cpal::Device>, Vec<cpal::Device>), Box<dyn std::error::Error>> {
     let host = cpal::default_host();
+
+    // list the available devices
+    println!("Input devices:");
+    for (i, device) in host.input_devices()?.enumerate() {
+        println!("{}: {}", i, device.name()?);
+    }
+    println!("Output devices:");
+    for (i, device) in host.output_devices()?.enumerate() {
+        println!("{}: {}", i, device.name()?);
+    }
+
     Ok((
         host.input_devices()?.filter(|d| d.default_input_config().is_ok()).collect(), 
         host.output_devices()?.filter(|d| d.default_output_config().is_ok()).collect()

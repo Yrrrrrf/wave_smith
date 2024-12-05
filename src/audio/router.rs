@@ -8,14 +8,14 @@ use crate::encoding::Encoder;
 use super::capture::AudioCapture;
 use super::playback::AudioPlayback;
 
-pub struct AudioRouter {
+pub struct AudioDev {
     capture: AudioCapture,
     playback: AudioPlayback,
     buffer: Arc<Mutex<Vec<f32>>>,
     pub encoder: Box<dyn Encoder>,
 }
 
-impl AudioRouter {
+impl AudioDev {
     pub fn new(
         capture: AudioCapture, playback: AudioPlayback, encoder: Box<dyn Encoder>
     ) -> Result<Self, Box<dyn Error>> {
