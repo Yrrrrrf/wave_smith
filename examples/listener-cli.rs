@@ -58,10 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create capture with selected device
     let capture = AudioCapture::new_with_device(select_device()?)?;
     info!("script::new({})", "AUDIO LISTENER".color(WHITE).style(Style::Bold));
-    info!("Successfully started listening on {} at {}", 
-        capture.device_info()?.name.color(GREEN), 
-        dev_utils::datetime::DateTime::now().time
-    );
+    info!("Successfully started listening at {}", dev_utils::datetime::DateTime::now().time);
 
     // Initialize signal monitor with wider display
     let mut monitor = SignalMonitor::new(48, Box::new(FSKEncoder::default()));

@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     set_max_level(Level::Trace);
 
     // Setup decoder with default FSK settings
-    let capture = AudioCapture::new()?;
+    let capture = AudioCapture::default();
 
     info!("script::new({})", "AUDIO LISTENER".color(WHITE).style(Style::Bold));
     info!("Successfully started {} at {}", 

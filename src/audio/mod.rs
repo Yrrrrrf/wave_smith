@@ -1,14 +1,13 @@
-use std::time::Duration;
-
+use std::{error::Error, time::Duration};
 use cpal::traits::{DeviceTrait, HostTrait};
+
 use dev_utils::{format::*, read_input};
 
 // * mod.rs
 pub mod capture;
 pub mod playback;
-// mod buffer;
 pub mod signal;
-pub mod router;
+pub mod dev;
 
 
 pub fn list_audio_devices() -> Result<(Vec<cpal::Device>, Vec<cpal::Device>), Box<dyn std::error::Error>> {
@@ -29,6 +28,33 @@ pub fn list_audio_devices() -> Result<(Vec<cpal::Device>, Vec<cpal::Device>), Bo
         host.output_devices()?.filter(|d| d.default_output_config().is_ok()).collect()
     ))
 }
+
+pub fn select_device(input: bool) -> Result<cpal::Device, Box<dyn Error>> {
+    let host = cpal::default_host();
+    let devices = match input {
+        true => host.input_devices()?,
+        false => host.output_devices()?
+    };
+
+    println!("\n{}", format!("Available {} Devices:", if input { "Input" } else { "Output" }).color(BLUE).style(Style::Bold));
+
+    let devices: Vec<_> = devices.filter(|d| {match input {
+        true => d.supported_input_configs().is_ok(),
+        false => d.supported_output_configs().is_ok()
+    }}).collect();
+
+    for (idx, device) in devices.iter().enumerate() {
+        println!("{}. {}", idx.to_string().color(GREEN), device.name().unwrap().color(WHITE));
+    }
+
+    loop {
+        let input = read_input::<usize>(Some("Select device number: "))?;
+        if input < devices.len() {return Ok(devices[input].clone());}
+        println!("Invalid selection. Try again.");
+    }
+}
+
+
 
 // ? FORMAT RELATED FUNCTIONS
 

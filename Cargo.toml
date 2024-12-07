@@ -15,11 +15,11 @@ exclude = [
 [dependencies]
 # DEV DEPS
 dev_utils = { path = "../dev_utils/dev_utils/" }  # local crate (dev-utils)
-thiserror = "1"  # error handling
+thiserror = "2.0"  # error handling
 # DATA TRANSFER PROTOCOL dependencies
 cpal = "0.15"  # code for audio input/output
 rustfft = "6"  # FFT (Fast Fourier Transform)
-bytes = { version = "1.8", features = ["serde"] }  # Efficient byte handling
+bytes = { version = "1.9", features = ["serde"] }  # Efficient byte handling
 
 lazy_static = "1.5.0"  # lazy initialization
 

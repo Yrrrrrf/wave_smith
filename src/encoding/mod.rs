@@ -21,10 +21,10 @@ pub trait Encoder {
 }
 
 
-pub fn byte_to_bits(byte: u8) -> Vec<bool> {
+pub fn bytes_to_bits(byte: u8) -> Vec<bool> {
     (0..8).map(|i| ((byte >> (7 - i)) & 1) == 1).collect()
 }
 
-pub fn bits_to_byte(bits: &[bool]) -> u8 {
+pub fn bits_to_bytes(bits: &[bool]) -> u8 {
     bits.iter().fold(0u8, |acc, &bit| (acc << 1) | if bit { 1 } else { 0 })
 }

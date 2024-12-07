@@ -4,7 +4,7 @@ use std::f32::consts::PI;
 use super::Encoder;
 
 // FSK (Frequency-Shift Keying) encoder implementation
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct FSKEncoder {
     sample_rate: u32,      // Sampling rate in Hz
     freq_0: f32,          // Frequency for bit 0 in Hz

@@ -14,7 +14,7 @@ use wave::encoding::FSKEncoder;
 use wave::audio::{
     capture::AudioCapture,
     playback::AudioPlayback,
-    router::AudioDev,
+    dev::AudioDev,
     signal::SignalMonitor,
 };
 
@@ -85,8 +85,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 // }
 
 fn test_signal_strength() -> Result<(), Box<dyn Error>> {
-    let encoder = Box::new(FSKEncoder::default());
-    let playback = AudioPlayback::new(encoder.clone())?;
+    let playback = AudioPlayback::new(Box::new(FSKEncoder::default()))?;
     let mut monitor = SignalMonitor::new(50, Box::new(FSKEncoder::default()));
 
     // Print monitor header
@@ -112,7 +111,7 @@ fn test_signal_strength() -> Result<(), Box<dyn Error>> {
         // Send signal
         let stream = playback.transmit(s)?;
         // Monitor signal strength
-        let samples = encoder.encode(s)?;
+        let samples = playback.encoder.encode(s)?;
         monitor.process_samples(&samples);
         
         thread::sleep(Duration::from_millis(250));
@@ -147,33 +146,33 @@ fn test_fsk_configs() -> Result<(), Box<dyn Error>> {
 
 
 
-// ? Some(test)
+// // ? Some(test)
 
-fn test_frame_operations() {
-    info!("Testing Frame operations");
+// fn test_frame_operations() {
+//     info!("Testing Frame operations");
 
-    // Test frame creation
-    let test_data = b"Test Frame Data";
-    let frame = Frame::new(1, test_data.to_vec());
+//     // Test frame creation
+//     let test_data = b"Test Frame Data";
+//     let frame = Frame::new(1, test_data.to_vec());
     
-    debug!("Created frame with sequence {}", frame.sequence);
+//     debug!("Created frame with sequence {}", frame.sequence);
     
-    // Test frame serialization
-    let frame_bytes = frame.to_bytes();
-    debug!("Frame serialized to {} bytes", frame_bytes.len());
+//     // Test frame serialization
+//     let frame_bytes = frame.to_bytes();
+//     debug!("Frame serialized to {} bytes", frame_bytes.len());
     
-    // Test frame deserialization
-    match Frame::from_bytes(&frame_bytes) {
-        Ok(decoded_frame) => {
-            assert_eq!(decoded_frame.sequence, 1, "Sequence number mismatch");
-            assert_eq!(&decoded_frame.payload, test_data, "Payload mismatch");
-            info!("Frame serialization/deserialization test passed");
-        }
-        Err(e) => {
-            error!("Frame deserialization failed: {:?}", e);
-        }
-    }
-}
+//     // Test frame deserialization
+//     match Frame::from_bytes(&frame_bytes) {
+//         Ok(decoded_frame) => {
+//             assert_eq!(decoded_frame.sequence, 1, "Sequence number mismatch");
+//             assert_eq!(&decoded_frame.payload, test_data, "Payload mismatch");
+//             info!("Frame serialization/deserialization test passed");
+//         }
+//         Err(e) => {
+//             error!("Frame deserialization failed: {:?}", e);
+//         }
+//     }
+// }
 
 fn test_fsk_codec() {
     info!("Testing FSK codec");

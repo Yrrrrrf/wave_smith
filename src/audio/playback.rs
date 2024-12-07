@@ -1,13 +1,23 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use std::{error::Error, sync::Arc};
+use std::{error::Error, fmt::write, sync::Arc};
 
 use crate::encoding::Encoder;
 
 
 pub struct AudioPlayback {
-    pub device: cpal::Device,      // The physical output device (speakers)
     config: cpal::StreamConfig, // Device configuration
+    pub device: cpal::Device,      // The physical output device (speakers)
     pub encoder: Box<dyn Encoder>, // The encoder instance for signal processing
+}
+
+impl std::fmt::Debug for AudioPlayback {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // write!(f, "AudioPlayback {{ device: {:?}, config: {:?} }}", self.device.name(), self.config)
+        f.debug_struct("AudioPlayback")
+            .field("device", &self.device.name().unwrap())
+            .field("config", &self.config)
+            .finish()
+    }
 }
 
 impl AudioPlayback {
@@ -29,31 +39,24 @@ impl AudioPlayback {
 
     /// Send data through the encoder and play it with volume control
     pub fn transmit_with_volume(
-        &self, 
+        &self,
         data: &[u8], 
         volume: f32
     ) -> Result<cpal::Stream, Box<dyn Error>> {
-        // Encode the data into audio samples
-        let samples = self.encoder.encode(data)?;
-        
+        // Encode the data into audio samples        
         let channels = self.config.channels as usize;
-        let samples = Arc::new(samples);
+        let samples = Arc::new(self.encoder.encode(data)?);
         let samples_clone = Arc::clone(&samples);
 
         let stream = self.build_output_stream(samples_clone, channels, volume)?;
         stream.play()?;
-        
+
         Ok(stream)
     }
 
     /// Send data through the encoder and play it (with default volume = 1.0)
     pub fn transmit(&self, data: &[u8]) -> Result<cpal::Stream, Box<dyn Error>> {
         self.transmit_with_volume(data, 1.0)
-    }
-
-    /// Get device information
-    pub fn device_info(&self) -> Result<DeviceInfo, Box<dyn Error>> {
-        Ok(DeviceInfo {name: self.device.name()?,  config: self.config.clone()})
     }
 
     // Private helper methods
@@ -82,16 +85,8 @@ impl AudioPlayback {
             |err| eprintln!("Error in output stream: {}", err),
             None,
         )?;
-
         Ok(stream)
     }
-}
-
-/// Structure to hold device information
-#[derive(Clone, Debug)]
-pub struct DeviceInfo {
-    pub name: String,
-    pub config: cpal::StreamConfig,
 }
 
 #[cfg(test)]
@@ -104,8 +99,6 @@ mod tests {
     fn test_default_device() -> Result<(), Box<dyn Error>> {
         let encoder = Box::new(FSKEncoder::default());
         let playback = AudioPlayback::new(encoder)?;
-        let info = playback.device_info()?;
-        println!("Default device: {}", info.name);
         Ok(())
     }
 
@@ -115,8 +108,6 @@ mod tests {
         if let Some(device) = host.output_devices()?.next() {
             let encoder = Box::new(FSKEncoder::default());
             let playback = AudioPlayback::new_with_device(device, encoder)?;
-            let info = playback.device_info()?;
-            println!("Specific device: {}", info.name);
             Ok(())
         } else {
             Ok(()) // Skip test if no devices available
